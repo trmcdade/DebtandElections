@@ -33,7 +33,7 @@ cr['SPforeignrating'] = [sp.index(x) for x in cr['SPforeignrating']]
 cr['Moodysforeignrating'] = [m.index(x) for x in cr['Moodysforeignrating']]
 
 cr['cr'] = [cr[['Fitchforeignrating', 'SPforeignrating', 'Moodysforeignrating']].iloc[x].max() for x in tqdm(range(cr.shape[0]))]
-cr['inv_grade'] = [1 if max(cr.iloc[x,3:].values) > 10 else 0 for x in range(cr.shape[0])]
+cr['inv_grade'] = [1 if max(cr.iloc[x,3:].values) > 10 else 0 for x in tqdm(range(cr.shape[0]))]
 cr = cr[['country', 'year', 'month', 'cr', 'inv_grade']]
 cr.head()
 
@@ -60,7 +60,10 @@ new_entries = ['AZERBAIJAN',
 # t['countryname'] = [x.upper() if x.upper() in countries else x for x in t.loc[:,'countryname']]
 # to_be_changed = [x for x in existing if x not in countries]
 dict = {k: v for k, v in zip(old_entries, new_entries)}
-cr['country'] = [dict[c] if c in old_entries else c for c in cr.loc[:,'country']]
+dict
+cr['country'] = [dict[c] if c in old_entries else c.upper() for c in cr.loc[:,'country']]
+cr.head()
+
 cr.to_csv('C:/Users/trmcd/Dropbox/Debt Issues and Elections/Explanatory Vars/Credit Ratings/Sov_Credit_Rating.csv')
 # out.head()
 # outpath = '/Explanatory Vars/WB WDI/WB_macro_2019_TM_20200707.csv'
