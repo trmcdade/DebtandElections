@@ -25,6 +25,10 @@ df3 = pd.read_csv(cmcm2_fn, index_col=0)
 df3 = df3[(df3['Amt.Numerator'] > 0)]
 df3['Date'] = pd.to_datetime(df3['Date'])
 
+# cp = sns.color_palette('CMRmap_r')
+cp = sns.color_palette('coolwarm')
+sns.set_palette('coolwarm', n_colors = len(df3[df3['Country'] == 'URUGUAY']['Curr'].unique()))
+
 ## By date of issuance.
 gdf = df3[df3['Country'] == 'URUGUAY']
 fig = sns.jointplot(data = gdf,
