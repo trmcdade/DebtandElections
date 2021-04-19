@@ -19,7 +19,7 @@ class Debt_Issues:
     def __init__(self, pull_date = None, sum_across_currencies = None, max_mty = None):
         '''
         Tim McDade
-        23 March 2021
+        19 April 2021
         Debt Issues and Elections
 
         This code produces a dataset incorporating issuance-level bond data,
@@ -265,17 +265,17 @@ class Debt_Issues:
 
         # System-level variables come from the WB DPI dataset, managed in dpi_data_prep.py
         # filter for presidential here.
-        dpi = pd.read_csv(self.dir + '/Explanatory Vars/WB DPI/WB_DPI_2017_TM_20200615.csv', index_col = 0, low_memory = False)
+        dpi = pd.read_csv(self.dir + '/Explanatory Vars/WB DPI/DPI2020/WB_DPI_2020_TM_20210419.csv', index_col = 0, low_memory = False)
         dpi = dpi.loc[:,~dpi.columns.duplicated()]
-        dpi = dpi[['countryname', 'year', 'month', 'system']]
+        dpi = dpi[['countryname', 'year', 'system']] # 'month',
         dpi = dpi[dpi['system'] == 'Presidential']
 
         print('Upon loading, elections dataset has ', len(self.e['country_join_to_bonds'].unique()), 'countries. The date range is ', self.e['year'].min(), 'until ', self.e['year'].max(), '.')
 
         self.e = self.e.merge(dpi,
-                              left_on = ['country', 'year', 'month'],
-                              right_on = ['countryname', 'year', 'month'])
-        self.e = self.e.sort_values(['country', 'year', 'month'])
+                              left_on = ['country', 'year'],#, 'month'],
+                              right_on = ['countryname', 'year'])#, 'month'])
+        self.e = self.e.sort_values(['country', 'year']) # , 'month'
 
         # print(f'After merging DPI, elections dataset has {len(self.e['country_join_to_bonds'].unique())} countries. The date range is {self.e['year'].min()} until {self.e['year'].max()}.')
         print('After merging DPI, elections dataset has ', len(self.e['country_join_to_bonds'].unique()), 'countries. The date range is ', self.e['year'].min(), 'until ', self.e['year'].max(),'.')
