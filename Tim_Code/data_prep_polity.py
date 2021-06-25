@@ -2,6 +2,8 @@ import pandas as pd
 import os
 from os import listdir
 
+# p = pd.read_csv('C:/Users/trmcd/Dropbox/Debt Issues and Elections/Explanatory Vars/PolityIV/original/pv_for_debt_2020_10_12.csv', index_col = 0)
+
 p = pd.read_excel('C:/Users/trmcd/Dropbox/Debt Issues and Elections/Explanatory Vars/PolityIV/original/p5v2018.xls')
 # theoretically, I'm most interested in government functioning (parcomp)
 p_cols = ['country', 'year', 'democ', 'autoc', 'polity2', 'parcomp']

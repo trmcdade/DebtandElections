@@ -22,7 +22,8 @@ dir <- "C:/Users/trmcd/Dropbox/Debt Issues and Elections/Tim_Code/Output_Data"
 setwd(dir)
 
 ## for the summed at currency level:
-data_24 <- read.csv("cmcm_outstanding_regdata_usd_24m_2021-03-23.csv",
+data_24 <- read.csv("cmcm_outstanding_regdata_usd_24m_2021-04-19.csv",
+# data_24 <- read.csv("cmcm_outstanding_regdata_usd_24m_2021-03-23.csv",
                      stringsAsFactors = TRUE, 
                      row.names = 1,
                      header = TRUE)
@@ -32,11 +33,11 @@ data_24['DV2'] <- (data_24['DV'] - mu_24) / std_24
 mu_24usd <- mean(data_24$DV_USD, na.rm = TRUE)
 std_24usd <- sd(data_24$DV_USD, na.rm = TRUE)
 data_24['DV_USD2'] <- (data_24['DV_USD'] - mu_24usd) / std_24usd
-data_24 <- data_24[(data_24['Amt.Mat'] > 0),]
 
 head(data_24)
 
-data_60 <- read.csv("cmcm_outstanding_regdata_usd_60m_2021-03-23.csv",
+data_60 <- read.csv("cmcm_outstanding_regdata_usd_60m_2021-04-19.csv",
+# data_60 <- read.csv("cmcm_outstanding_regdata_usd_60m_2021-03-23.csv",
                     stringsAsFactors = TRUE, 
                     row.names = 1,
                     header = TRUE)
@@ -46,10 +47,9 @@ data_60['DV2'] <- (data_60['DV'] - mu_60) / std_60
 mu_60usd <- mean(data_60$DV_USD, na.rm = TRUE)
 std_60usd <- sd(data_60$DV_USD, na.rm = TRUE)
 data_60['DV_USD2'] <- (data_60['DV_USD'] - mu_60usd) / std_60usd
-data_60 <- data_60[(data_60['Amt.Mat'] > 0),]
 
-
-data_120 <- read.csv("cmcm_outstanding_regdata_usd_120m_2021-03-23.csv",
+data_120 <- read.csv("cmcm_outstanding_regdata_usd_120m_2021-04-19.csv",
+# data_120 <- read.csv("cmcm_outstanding_regdata_usd_120m_2021-03-23.csv",
                     stringsAsFactors = TRUE, 
                     row.names = 1,
                     header = TRUE)
@@ -59,7 +59,21 @@ data_120['DV2'] <- (data_120['DV'] - mu_120) / std_120
 mu_120usd <- mean(data_120$DV_USD, na.rm = TRUE)
 std_120usd <- sd(data_120$DV_USD, na.rm = TRUE)
 data_120['DV_USD2'] <- (data_120['DV_USD'] - mu_120usd) / std_120usd
-data_120 <- data_120[(data_120['Amt.Mat'] > 0),]
+
+
+# filter for polity score (democracies with regular elections)
+data_24 <- data_24[data_24$polity2 >= 5,]
+data_60 <- data_60[data_60$polity2 >= 5,]
+data_120 <- data_120[data_120$polity2 >= 5,]
+
+# filter for nonzero amt mat, because zero values are something else entirely
+data_24 <- data_24[(data_24['Amt.Numerator'] > 0),]
+data_60 <- data_60[(data_60['Amt.Numerator'] > 0),]
+data_120 <- data_120[(data_120['Amt.Numerator'] > 0),]
+
+
+# hist(data_120[, 'vote_margin'])
+# hist(data_120[(data_120[,'vote_margin'] < 50), 'vote_margin'])
 
 
 # re-scale the DV. relative to the mean, minus mean div by sd. 
@@ -280,7 +294,7 @@ sm <- data.frame(lapply(sm, function(y) if(is.numeric(y)) round(y, 8) else y))
 sm <- sm[sm['factor'] =='Months.Mat.To.Election',]
 
 # output a table for the write-up.
-print(xtable(sm[,2:dim(sm)[2]]), include.rownames = FALSE)
+print(xtable(sm[,2:dim(sm)[2]], digits = 3), include.rownames = FALSE)
 
 # output a plot for the write-up. 
 ggplot(data = sm) + 

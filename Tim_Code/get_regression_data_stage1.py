@@ -93,16 +93,17 @@ class Debt_Issues:
         '''
 
         print('Loading Election Data.')
-        ename = self.dir + "/Tim_Code/elections.csv"
+        ename = self.dir + "/Tim_Code/elections_20210420.csv"
         # get the election data from the aggrergated country-month file.
         # self.elections = pd.read_stata(self.dir + "/working.dta")
         self.elections = pd.read_csv(ename, index_col = 0, low_memory = False)
         cols = [
                 'year', 'month'
                 ,'country', 'country_join_to_bonds'
-                ,'countryname'
+                # ,'countryname'
                 ,'date'
                 ,"vote_margin"
+                ,'exec_only_round', 'exec_first_round', 'exec_final_round', 'exec_vote_share'
                 ]
 
         self.e = pd.DataFrame(self.elections[cols])
@@ -247,30 +248,35 @@ class Debt_Issues:
         #
         # print('After merging EDS, elections dataset has ', len(self.e['country_join_to_bonds'].unique()), 'countries. The date range is ', self.e['year'].min(), 'until ', self.e['year'].max(),'.')
 
+        # TODO: comment this join out.
+        # TODO: Get rid of the reg_elections filter
+        # TODO: add the polity2 column.
+        # TODO: add a polity2 >= 5 filter in the R script.
+
         # filter by only those countries that have regular competitive elections.
         # definitions in reg_elections_data_prep.py
-        reg_elections = pd.read_csv(self.dir + '/Explanatory Vars/WB DPI/Regular_elections_WB_DPI_2017_TM_20200625.csv', index_col = 0)
-        self.e = self.e.merge(reg_elections,
-                                how = 'left',
-                              left_on = ['country'],
-                              right_on = ['countryname'])
+        # reg_elections = pd.read_csv(self.dir + '/Explanatory Vars/WB DPI/Regular_elections_WB_DPI_2017_TM_20200625.csv', index_col = 0)
+        # self.e = self.e.merge(reg_elections,
+        #                         how = 'left',
+        #                       left_on = ['country'],
+        #                       right_on = ['countryname'])
+        #
+        # print('After merging reg_elections, elections dataset has ', len(self.e['country_join_to_bonds'].unique()), 'countries. The date range is ', self.e['year'].min(), 'until ', self.e['year'].max(),'.')
+        #
+        # self.e = self.e[self.e['reg_elections'] == 1].reset_index(drop = True)
 
-        print('After merging reg_elections, elections dataset has ', len(self.e['country_join_to_bonds'].unique()), 'countries. The date range is ', self.e['year'].min(), 'until ', self.e['year'].max(),'.')
-
-        self.e = self.e[self.e['reg_elections'] == 1].reset_index(drop = True)
-
-        print('After filtering for reg_elections, elections dataset has ', len(self.e['country_join_to_bonds'].unique()), 'countries. The date range is ', self.e['year'].min(), 'until ', self.e['year'].max(),'.')
+        # print('After filtering for reg_elections, elections dataset has ', len(self.e['country_join_to_bonds'].unique()), 'countries. The date range is ', self.e['year'].min(), 'until ', self.e['year'].max(),'.')
 
         # TODO: If you want to use any of these variables, be sure to go into the respective code creating that file
         # and format the country names in the same way (capitalized, mostly) that the bond data country names are formatted.
         # see the credit rating code for an example.
 
-        # polity = pd.read_csv(self.dir + '/Explanatory Vars/PolityIV/original/pv_for_debt_2020_10_12.csv', index_col = 0)
-        # self.out = self.out.merge(polity,
-        #                       left_on = ['Country', 'Year', 'Month'],
-        #                       right_on = ['country', 'year', 'month'])
-        #
-        # print('After merging polity, out has ', len(self.out['Country'].unique()), 'countries. The date range is ', self.out['Year'].min(), 'until ', self.out['Year'].max(),'.')
+        polity = pd.read_csv(self.dir + '/Explanatory Vars/PolityIV/original/pv_for_debt_2020_10_12.csv', index_col = 0)
+        self.e = self.e.merge(polity,
+                              left_on = ['country', 'year', 'month'],
+                              right_on = ['country', 'year', 'month'])
+
+        print('After merging polity, out has ', len(self.e['country'].unique()), 'countries. The date range is ', self.e['year'].min(), 'until ', self.e['year'].max(),'.')
 
         # macro = pd.read_csv(self.dir + '/Explanatory Vars/WB WDI/WB_macro_2019_TM_20200707.csv', index_col = 0)
         # self.out = self.out.merge(macro,
@@ -324,6 +330,9 @@ class Debt_Issues:
         print('The countries in elections but not out are ')
         print([x for x in self.e['country_join_to_bonds'].unique() if x not in self.out['Country'].unique()])
 
+        print(self.out['Next.Election'].head())
+        print(self.e['date'].head())
+
         self.out = self.out.merge(self.e,
                                   # how = 'outer',
                                   how = 'left',
@@ -352,9 +361,11 @@ class Debt_Issues:
                         # ,'Curr_Type'
                         # ,'Mty'
 
+                        ,'polity2', 'democ', 'autoc', 'parcomp'
                         ,'Next.Election'
                         ,'Months.To.Election'
                         ,'vote_margin'
+                        ,'exec_only_round', 'exec_first_round', 'exec_final_round', 'exec_vote_share'
                         ,'inv_grade'
                         ,'cr'
                         ,'US_FFR'
@@ -382,19 +393,22 @@ class Debt_Issues:
 
 
 if __name__ == "__main__":
-    debt = Debt_Issues(pull_date = datetime.now().strftime('%Y-%m-%d'),
+    debt = Debt_Issues(pull_date = '2021-04-19',
+                        # datetime.now().strftime('%Y-%m-%d'),
                         sum_across_currencies = 'usd', #'lc'
                         max_mty = 24 # in months)
                         )
     debt.main()
 
-    debt = Debt_Issues(pull_date=datetime.now().strftime('%Y-%m-%d'),
+    debt = Debt_Issues(pull_date = '2021-04-19',
+                        # datetime.now().strftime('%Y-%m-%d'),
                        sum_across_currencies='usd',  # 'lc'
                        max_mty = 60 # in months)
                        )
     debt.main()
 
-    debt = Debt_Issues(pull_date = datetime.now().strftime('%Y-%m-%d'),
+    debt = Debt_Issues(pull_date = '2021-04-19',
+                        # datetime.now().strftime('%Y-%m-%d'),
                         sum_across_currencies = 'usd', #'lc'
                         max_mty = 120 # in months)
                         # max_mty = all # in months)

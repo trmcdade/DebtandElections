@@ -21,8 +21,7 @@ set.seed(619)
 dir <- "C:/Users/trmcd/Dropbox/Debt Issues and Elections/Tim_Code/Output_Data"
 setwd(dir)
 
-var <- 'exec_only_round'
-glue("Sammy the {var}.")
+var <- 'exec_first_round'
 
 ## for the summed at currency level:
 data_24 <- read.csv("outstanding_regdata_usd_24m_2021-04-19.csv",
@@ -72,14 +71,11 @@ data_24 <- data_24[(data_24['Amt.Mat'] > 0),]
 data_60 <- data_60[(data_60['Amt.Mat'] > 0),]
 data_120 <- data_120[(data_120['Amt.Mat'] > 0),]
 
-head(data_24)
-length(unique(data_24$Country))
-
 head(data_120)
 hist(data_120[, 'vote_margin'])
 hist(data_120[(data_120[, 'exec_vote_share'] != -999), 'exec_vote_share'])
 hist(data_120[(data_120[, 'exec_first_round'] != -999), 'exec_first_round'])
-hist(data_120[(data_120[, 'exec_final_round'] != -999), 'exec_final_round'])
+hist(data_120[(data_120[, 'exec_first_round'] != -999), 'exec_first_round'])
 hist(data_120[(data_120[, 'exec_only_round'] != -999), 'exec_only_round'])
 
 # data_120[data_120[,'vote_margin'] > 50,]
@@ -88,21 +84,19 @@ hist(data_120[(data_120[, 'exec_only_round'] != -999), 'exec_only_round'])
 ## TODO: this shouldn't be z-score, it should be normalized bc it's not
 ## normally distributed. 
 
-data_120[(data_120['DV'] < 0),]
-
 hist(data_24[, 'DV2'], 
      breaks = 120, 
-     xlab = 'Normalized Share of Outstanding Maturing This Month (Non-Zero Values)', ylab = 'Frequency',
+     xlab = 'Share of Outstanding Maturing This Month (Non-Zero Values)', ylab = 'Frequency',
      main = 'Histogram of Share Maturing Today, 2y')
 
 hist(data_60[, 'DV2'], 
      breaks = 120, 
-     xlab = 'Normalized Share of Outstanding Maturing This Month (Non-Zero Values)', ylab = 'Frequency',
+     xlab = 'Share of Outstanding Maturing This Month (Non-Zero Values)', ylab = 'Frequency',
      main = 'Histogram of Share Maturing Today, 5y')
 
 hist(data_120[, 'DV2'], 
      breaks = 120, 
-     xlab = 'Normalized Share of Outstanding Maturing This Month (Non-Zero Values)', ylab = 'Frequency',
+     xlab = 'Share of Outstanding Maturing This Month (Non-Zero Values)', ylab = 'Frequency',
      main = 'Histogram of Share Maturing Today, 10y')
 
 
@@ -120,9 +114,11 @@ hist(data_120[(data_120['DV'] > 0), 'DV'],
      xlab = 'Share of Outstanding Maturing This Month (Non-Zero Values)', ylab = 'Frequency',
      main = 'Histogram of Share Maturing Today:10y')
 
+glue('{var}')
+data_24[(data_24[,glue('{var}')] != -999),]
+
 m24 <- lmer(DV2 ~
-             # Months.To.Election * vote_margin
-            Months.To.Election * exec_only_round
+            Months.To.Election * exec_first_round
             + Amt.Out
            # add original credit rating var. 
            # + inv_grade
@@ -131,16 +127,13 @@ m24 <- lmer(DV2 ~
            + US_FFR
            + (1 | Country)
            + (1 | Curr)
-           , data = data_24[(data_24[,'exec_only_round'] != -999),]
-           # , data = data_60
-           # , data = data_120
+           , data = data_24[(data_24[,'exec_first_round'] != -999),]
 )
 summary(m24)
 r.squaredGLMM(m24)
 
 m60 <- lmer(DV2 ~
-              # Months.To.Election * vote_margin
-              Months.To.Election * exec_only_round
+              Months.To.Election * exec_first_round
             + Amt.Out
             # add original credit rating var. 
             # + inv_grade
@@ -149,18 +142,14 @@ m60 <- lmer(DV2 ~
             + US_FFR
             + (1 | Country)
             + (1 | Curr)
-            # , data = data_24
-            , data = data_60[(data_60[,'exec_only_round'] != -999),]
-            # , data = data_60
-            # , data = data_120
+            , data = data_60[(data_60[,'exec_first_round'] != -999),]
 )
 summary(m60)
 r.squaredGLMM(m60)
 
 m120 <- lmer(DV2 ~
-               # Months.To.Election * vote_margin
-               Months.To.Election * exec_only_round
-             + Amt.Out
+            Months.To.Election * exec_first_round
+            + Amt.Out
             # add original credit rating var. 
             # + inv_grade
             + cr
@@ -168,10 +157,7 @@ m120 <- lmer(DV2 ~
             + US_FFR
             + (1 | Country)
             + (1 | Curr)
-            # , data = data_24
-            # , data = data_60
-            # , data = data_120
-            , data = data_120[(data_120[,'exec_only_round'] != -999),]
+            , data = data_120[(data_120[,'exec_first_round'] != -999),]
 )
 summary(m120)
 r.squaredGLMM(m120)
@@ -179,58 +165,46 @@ r.squaredGLMM(m120)
 # try with convert to USD and sum it all that way 
 
 m24_usd <- lmer(DV_USD2 ~
-                  # Months.To.Election * vote_margin
-                  Months.To.Election * exec_only_round
-                + Amt.Out_USD
-              # add original credit rating var. 
+            Months.To.Election * exec_first_round
+            + Amt.Out_USD
+            # add original credit rating var. 
             # + inv_grade
             + cr
             # # global liquidity is tight
             + US_FFR
             + (1 | Country)
             + (1 | Curr)
-            # , data = data_24
-            , data = data_24[(data_24[,'exec_only_round'] != -999),]
-            # , data = data_60
-            # , data = data_120
+            , data = data_24[(data_24[,'exec_first_round'] != -999),]
 )
 summary(m24_usd)
 r.squaredGLMM(m24_usd)
 
 m60_usd <- lmer(DV_USD2 ~
-                  # Months.To.Election * vote_margin
-                  Months.To.Election * exec_only_round
-                + Amt.Out_USD
-              # add original credit rating var. 
+            Months.To.Election * exec_first_round
+            + Amt.Out_USD
+            # add original credit rating var. 
             # + inv_grade
             + cr
             # # global liquidity is tight
             + US_FFR
             + (1 | Country)
             + (1 | Curr)
-            # , data = data_24
-            # , data = data_60
-            , data = data_60[(data_60[,'exec_only_round'] != -999),]
-            # , data = data_120
+            , data = data_60[(data_60[,'exec_first_round'] != -999),]
 )
 summary(m60_usd)
 r.squaredGLMM(m60_usd)
 
 m120_usd <- lmer(DV_USD2 ~
-                   # Months.To.Election * vote_margin
-                   Months.To.Election * exec_only_round
-                 # Months.To.Election * vote_margin
-               + Amt.Out_USD
-               # add original credit rating var. 
+              Months.To.Election * exec_first_round
+              + Amt.Out_USD
+              # add original credit rating var. 
              # + inv_grade
              + cr
              # # global liquidity is tight
              + US_FFR
              + (1 | Country)
              + (1 | Curr)
-             # , data = data_24
-             # , data = data_60
-             , data = data_120[(data_120[,'exec_only_round'] != -999),]
+             , data = data_120[(data_120[,'exec_first_round'] != -999),]
 )
 summary(m120_usd)
 r.squaredGLMM(m120_usd)
@@ -276,7 +250,9 @@ results_df <- data.frame(term = rep(var.names, times = 3),
                                    rep("10y", length(var.names))),
                          stringsAsFactors = FALSE)
 
-keepcols <- c('Months.To.Election', 'exec_only_round', 'Months.To.Election:exec_only_round')
+results_df
+keepcols <- c('Months.To.Election', glue('{var}'), glue('Months.To.Election:{var}'))
+keepcols
 # keepcols <- c('exec_vote_share', 'Months.To.Election:exec_vote_share')
 results_df <- results_df[(results_df$term == keepcols[1]) |
                            (results_df$term == keepcols[2]) |
@@ -294,7 +270,7 @@ new_colors = c(rgb(red = colors[[1]][1], green = colors[[1]][2], blue = colors[[
 p <- dwplot(results_df) +
   theme_bw() +
   theme(legend.justification=c(.02, .993), 
-        legend.position=c(0.1, .3),
+        legend.position=c(.15, .3),
         # legend.position=c(0.8, .3),
         legend.title = element_blank(), 
         legend.background = element_rect(color="gray90"),
@@ -305,22 +281,18 @@ p <- dwplot(results_df) +
                      values = c(new_colors[3], new_colors[2], new_colors[1])) +
   geom_vline(xintercept = 0, colour = "grey60", linetype = 2) #+
 p
-ggsave(paste(dir, '/coefplot_usd.png', sep = ''))
+ggsave(paste(dir, glue('/coefplot_usd_{var}.png'), sep = ''))
 
 
 ##############################
 ###### marginal effects ######
 ##############################
 
-# marg <- margins(m24) # default is observed value approach
-# marg
-# plot(marg)
-
 # m <- margins(m24_usd, at = list(vote_margin = fivenum(data_24$vote_margin, na.rm = TRUE)))
 
-m <- margins(m24_usd, at = 
-               list(exec_only_round =
-                      fivenum(data_24[(data_24$exec_only_round != -999), 'exec_only_round'], 
+m <- margins(m60_usd, at = 
+               list(exec_first_round =
+                      fivenum(data_60[(data_60$exec_first_round != -999), 'exec_first_round'], 
                               na.rm = TRUE)))
 sm <- summary(m)
 sm <- data.frame(lapply(sm, function(y) if(is.numeric(y)) round(y, 8) else y)) 
@@ -332,10 +304,8 @@ print(xtable(sm[,2:dim(sm)[2]], digits = 3), include.rownames = FALSE)
 # output a plot for the write-up. 
 ggplot(data = sm) + 
   theme_bw() +
-  geom_line(aes(x = exec_only_round, y = AME), colour = new_colors[1]) +
-  geom_ribbon(aes(x = exec_only_round, y = AME,
-  # geom_line(aes(x = vote_margin, y = AME), colour = new_colors[1]) +
-  # geom_ribbon(aes(x = vote_margin, y = AME,
+  geom_line(aes(x = exec_first_round, y = AME), colour = new_colors[1]) +
+  geom_ribbon(aes(x = exec_first_round, y = AME,
                   ymin = lower, ymax = upper),
               linetype = 2, alpha = .15, colour = new_colors[1]) +
   scale_color_manual(values=new_colors) +
@@ -345,15 +315,13 @@ ggplot(data = sm) +
   labs(colour = "Variable:") +
   # xlim(c(0,100)) + 
   # ylim(c(-0.01,0.01)) + 
-  xlab("Vote Margin") +
+  xlab("Executive Vote Share") +
   ylab('Marginal Effect of Months to Election on Share') #+
 # ggtitle("Effect of Variable Change on \n Predicted Probability of Protest")
 # as the vote share increases, the months to election matters more. meaning
 # the dmo is more likely to issue debt that avoids the election if the election 
 # is a blowout.
-# ggsave(paste(dir, '/ame_24m_usd.png', sep = ''))
-
-min(data_24[(data_24[,'exec_vote_share'] != -999),'exec_vote_share'])
+ggsave(paste(dir, glue('/ame_60m_usd_{var}.png'), sep = ''))
 
 # interpretation: 
 # as the vote margin increases, months to election has a stronger neg effect. 
@@ -382,7 +350,7 @@ stargazer(m24, m60, m120,
           dep.var.caption = 'Pct. of Outstanding Debt Maturing Today', 
           colnames = FALSE,
           df = FALSE,
-          digits = 8,
+          digits = 4,
           font.size = "small",
           column.sep.width = "-5pt",
           omit = c('Constant', 'aic', 'bic', 'll', omit_vars),
@@ -401,7 +369,7 @@ stargazer(m24_usd, m60_usd, m120_usd,
           dep.var.caption = 'Pct. of Outstanding Debt Maturing Today', 
           colnames = FALSE,
           df = FALSE,
-          digits = 8,
+          digits = 4,
           font.size = "small",
           column.sep.width = "-5pt",
           omit = c('Constant', 'aic', 'bic', 'll', omit_vars),

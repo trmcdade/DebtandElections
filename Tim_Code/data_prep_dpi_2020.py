@@ -3,10 +3,14 @@ import os
 from os import listdir
 
 t = pd.read_stata('C:/Users/trmcd/Dropbox/Debt Issues and Elections/Explanatory Vars/WB DPI/DPI2020/DPI2020.dta')
+t = t[t['dateexec'] != -999]
+t['month'] = t['dateexec']
+t['vote_margin'] = t['gov1vote'].subtract(t['gov2vote'])
 
 dpi_cols = ['countryname'#, 'wbcode'
-            ,'year'#, 'month'
+            ,'year', 'month'
             ,'system' # parliamentary (2), assembly-elected president (1), presidential (0)
+            ,'vote_margin'
             # years in office for CE, finite term (1/0), years left in current term
             ,'yrsoffc', 'finittrm', 'yrcurnt', 'multpl'
             # president and defense minister are military?
@@ -78,11 +82,13 @@ dpi_cols = ['countryname'#, 'wbcode'
             ,'polariz' # maximum polarization b/x exec party and four principal parties of legis
             ]
 
+
+
 existing = t['countryname'].unique()
 # countries = pd.read_excel('../../Tim Code/countries_and_currency_codes.xlsx')['Country'].unique()
 countries = pd.read_stata("C:/Users/trmcd/Dropbox/Debt Issues and Elections/working.dta")['country'].unique()
 
-t = t[dpi_cols]
+t = t[dpi_cols].copy()
 old_entries = [x for x in existing if x not in countries]
 new_entries = [
                'Cyprus'
@@ -171,5 +177,30 @@ dict = {k: v for k, v in zip(old_entries, new_entries)}
 t['countryname'] = [dict[c] if c in old_entries else c for c in t['countryname']]
 
 t['year'] = t['year'].dt.strftime('%Y')
+
+
+
+a = t[['year', 'countryname', 'month', 'vote_margin',
+        'system', 'percent1', 'percentl']]
+a['year'] = a['year'].astype(int)
+
+a = a[a['year'] >= 1990].reset_index(drop  = True)
+a = a[a['system'] == 'Presidential'].reset_index(drop  = True)
+
+a = a[pd.notnull(a['percent1'])].reset_index(drop  = True)
+a = a[a['percent1'] != -999].reset_index(drop  = True)
+a = a[a['percentl'] != -999].reset_index(drop  = True)
+# a = a[pd.notnull(a['percentl'])].reset_index(drop  = True)
+
+## look at both rounds. smaller effect for second round if there's one
+## because there's no time?
+
+# three versions: leg margin, first/only exec round, last/only exec round
+
+a.shape
+a.head()
+a[['countryname', 'year', 'month', 'percentl']].sample(10)
+a['percentl'].hist()
+
 
 t.to_csv('C:/Users/trmcd/Dropbox/Debt Issues and Elections/Explanatory Vars/WB DPI/DPI2020/WB_DPI_2020_TM_20210419.csv')
