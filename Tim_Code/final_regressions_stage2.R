@@ -14,7 +14,7 @@ packs = c('ggplot2', 'dplyr', 'scales', 'haven', 'readstata13',
           'stargazer', 'bvartools', 'vars', 'urca', 'reshape2', 
           'dynlm', 'tseries', 'car', 'fUnitRoots', 'panelvar',
           'plm', 'gplots', 'xtable', 'lme4', 'ecm', 'MuMIn', 
-          'lmerTest', 'dotwhisker', 'margins')
+          'lmerTest', 'dotwhisker', 'margins', 'glue', 'plyr')
 
 loadPkg(packs)
 set.seed(619)
@@ -23,7 +23,6 @@ setwd(dir)
 
 ## for the summed at currency level:
 data_24 <- read.csv("cmcm_outstanding_regdata_usd_24m_2021-04-19.csv",
-# data_24 <- read.csv("cmcm_outstanding_regdata_usd_24m_2021-03-23.csv",
                      stringsAsFactors = TRUE, 
                      row.names = 1,
                      header = TRUE)
@@ -34,10 +33,7 @@ mu_24usd <- mean(data_24$DV_USD, na.rm = TRUE)
 std_24usd <- sd(data_24$DV_USD, na.rm = TRUE)
 data_24['DV_USD2'] <- (data_24['DV_USD'] - mu_24usd) / std_24usd
 
-head(data_24)
-
 data_60 <- read.csv("cmcm_outstanding_regdata_usd_60m_2021-04-19.csv",
-# data_60 <- read.csv("cmcm_outstanding_regdata_usd_60m_2021-03-23.csv",
                     stringsAsFactors = TRUE, 
                     row.names = 1,
                     header = TRUE)
@@ -49,7 +45,6 @@ std_60usd <- sd(data_60$DV_USD, na.rm = TRUE)
 data_60['DV_USD2'] <- (data_60['DV_USD'] - mu_60usd) / std_60usd
 
 data_120 <- read.csv("cmcm_outstanding_regdata_usd_120m_2021-04-19.csv",
-# data_120 <- read.csv("cmcm_outstanding_regdata_usd_120m_2021-03-23.csv",
                     stringsAsFactors = TRUE, 
                     row.names = 1,
                     header = TRUE)
@@ -72,28 +67,42 @@ data_60 <- data_60[(data_60['Amt.Numerator'] > 0),]
 data_120 <- data_120[(data_120['Amt.Numerator'] > 0),]
 
 
-# hist(data_120[, 'vote_margin'])
-# hist(data_120[(data_120[,'vote_margin'] < 50), 'vote_margin'])
-
-
-# re-scale the DV. relative to the mean, minus mean div by sd. 
-## TODO: this shouldn't be z-score, it should be normalized bc it's not
-## normally distributed. 
-
-hist(data_24[, 'DV2'], 
+hist(data_24[, 'DV'], 
      breaks = 120, 
      xlab = 'Share of Outstanding Maturing This Month (Non-Zero Values)', ylab = 'Frequency',
      main = 'Histogram of Share Maturing Today, 2y')
 
-hist(data_60[, 'DV2'], 
+hist(data_60[, 'DV'], 
      breaks = 120, 
      xlab = 'Share of Outstanding Maturing This Month (Non-Zero Values)', ylab = 'Frequency',
      main = 'Histogram of Share Maturing Today, 5y')
 
-hist(data_120[, 'DV2'], 
+hist(data_120[, 'DV'], 
      breaks = 120, 
      xlab = 'Share of Outstanding Maturing This Month (Non-Zero Values)', ylab = 'Frequency',
      main = 'Histogram of Share Maturing Today, 10y')
+
+# countries with visually clear trends: 17, 7, 11
+ctry <- toString(sort(unique(data_60[,'Country']))[3])
+ctry_title <- tools::toTitleCase(tolower(ctry))
+ggplot(data = data_60[(data_60['DV'] > 0) & 
+                        # (data_60['exec_vote_share'] != -999) & 
+                        (data_60['Country'] == ctry),]) +
+  theme_bw() +
+  # geom_point(aes(x = Months.Mat.To.Election, y = DV)) +
+  geom_point(aes(x = Months.Mat.To.Election, y = DV, color = exec_vote_share)) +
+  scale_color_gradient(low="red", high="blue") +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = 'bottom', 
+        text = element_text(size=16),
+        # axis.text.x = element_text(hjust=1)
+        ) +
+  guides(color = guide_legend("Executive Vote Share")) +
+  ggtitle(glue('{ctry_title} Debt Issuances (5Y Maturity or Less)')) + 
+  xlab("Months From Maturity Until Election") +
+  ylab('Share of Monthly Issues \n Maturing Near an Election')
+ggsave(paste(dir, glue('/example_{tolower(ctry)}.png'), sep = ''))
+ggsave(paste(dir, glue('/example_{tolower(ctry)}_color.png'), sep = ''))
 
 
 hist(data_24[(data_24['DV'] > 0) & (data_24['DV'] < 0.5), 'DV'], 
@@ -109,12 +118,18 @@ hist(data_120[(data_120['DV'] > 0) & (data_120['DV'] < 0.5), 'DV'],
      xlab = 'Share of Outstanding Maturing This Month (Non-Zero Values)', ylab = 'Frequency',
      main = 'Histogram of Share Maturing Today:10y')
 
-m24 <- lmer(DV2 ~
+dim(data_24[data_24$crisis_sovdebt == 1,])
+
+m24 <- lmer(DV_USD2 ~
              Months.Mat.To.Election * vote_margin
-           + Amt.Denominator # total amount issued that month
+            # Months.Mat.To.Election * vote_margin * crisis_sovdebt
+            + Amt.Denominator_USD # total amount issued that month
            # add original credit rating var. 
            # + inv_grade
-           + cr
+           # + crisis_sovdebt
+           # + crisis_inflation
+           # + crisis_currency
+           # + cr
            # # global liquidity is tight
            + US_FFR
            + (1 | Country)
@@ -254,6 +269,8 @@ keepcols <- c('Months.Mat.To.Election', 'vote_margin', 'Months.Mat.To.Election:v
 results_df <- results_df[(results_df$term == keepcols[1]) |
                            (results_df$term == keepcols[2]) |
                            (results_df$term == keepcols[3]) ,]
+cleancols <- c("Months Maturity To Election", "Executive Vote Share", "Interaction")
+results_df[,'term'] <- mapvalues(results_df[,'term'], from=keepcols, to=cleancols)
 results_df
 
 colors <- list(c(0.16941176470588235, 0.15, 0.5323529411764706),
@@ -266,13 +283,15 @@ new_colors = c(rgb(red = colors[[1]][1], green = colors[[1]][2], blue = colors[[
 p <- dwplot(results_df) +
   theme_bw() +
   theme(legend.justification=c(.02, .993), 
-        legend.position=c(0.8, .3),
+        legend.position=c(0.1, .27),
         legend.title = element_blank(), 
         legend.background = element_rect(color="gray90"),
-        plot.title = element_text(hjust = 0.5)) + 
+        plot.title = element_text(hjust = 0.5), 
+        text = element_text(size=18)
+  ) + 
   guides(color = guide_legend(override.aes = list(size=3))) + 
   xlab("Coef. Est.") +
-  scale_color_manual(labels = c("mat<=2y", "mat<=5y", 'mat<=10y'),
+  scale_color_manual(labels = c("Mat <= 2y", "Mat <= 5y", 'Mat <= 10y'),
                      values = c(new_colors[3], new_colors[2], new_colors[1])) +
   geom_vline(xintercept = 0, colour = "grey60", linetype = 2) #+
 p
@@ -283,15 +302,12 @@ ggsave(paste(dir, '/cmcm_coefplot_usd.png', sep = ''))
 ###### marginal effects ######
 ##############################
 
-library(margins)
-marg <- margins(m24) # default is observed value approach
-marg
-plot(marg)
-
 m <- margins(m24_usd, at = list(vote_margin = fivenum(data_24$vote_margin, na.rm = TRUE)))
 sm <- summary(m)
 sm <- data.frame(lapply(sm, function(y) if(is.numeric(y)) round(y, 8) else y)) 
 sm <- sm[sm['factor'] =='Months.Mat.To.Election',]
+sm[,'factor'] <- 'Months To Election'
+names(sm)[2] <- 'Executive Vote Share (Final Round)'
 
 # output a table for the write-up.
 print(xtable(sm[,2:dim(sm)[2]], digits = 3), include.rownames = FALSE)
@@ -299,26 +315,20 @@ print(xtable(sm[,2:dim(sm)[2]], digits = 3), include.rownames = FALSE)
 # output a plot for the write-up. 
 ggplot(data = sm) + 
   theme_bw() +
-  geom_line(aes(x = vote_margin, y = AME), colour = new_colors[1]) +
-  geom_ribbon(aes(x = vote_margin, y = AME,
+  geom_line(aes(x = `Executive Vote Share (Final Round)`, y = AME), colour = new_colors[1]) +
+  geom_ribbon(aes(x = `Executive Vote Share (Final Round)`, y = AME,
                   ymin = lower, ymax = upper),
               linetype = 2, alpha = .15, colour = new_colors[1]) +
   scale_color_manual(values=new_colors) +
   theme(plot.title = element_text(hjust = 0.5),
+        text = element_text(size=18),
         legend.position = 'bottom',
         legend.title = element_blank()) +
   labs(colour = "Variable:") +
-  xlab("Vote Margin") +
-  ylab('Marginal Effect of Months to Election on Share') #+
-# ggtitle("Effect of Variable Change on \n Predicted Probability of Protest")
+  xlab("Executive Vote Share") +
+  ylab('Marginal Effect of Months Maturity \n to Election on Share') #+
 ggsave(paste(dir, '/cmcm_ame_24m_usd.png', sep = ''))
 
-# interpretation: 
-# as the vote margin increases, months to election has a stronger neg effect. 
-# this means that closer elections means a larger more positive effect, 
-# which is what we want. This esp when combined with the positive significant
-# coefficient for Months.Mat.To.Election supports our hypotheses: countries do this
-# in general, and they only do it less when the election isn't close 
 
 ##############################
 ###### regression table ######
@@ -332,8 +342,26 @@ class(m60_usd) <- "lmerMod"
 class(m120) <- "lmerMod"
 class(m120_usd) <- "lmerMod"
 
-# doesn't show up in LC.
+# Both LC and USD.
+stargazer(m24, m24_usd, m60, m60_usd, m120, m120_usd,
+          column.labels = c('2y', '2y (USD)', '5y', '5y (USD)', '10y', '10y (USD)'),
+          dep.var.labels.include = FALSE,
+          dep.var.caption = 'Pct. of Outstanding Debt Maturing Today', 
+          covariate.labels = cleancols,
+          colnames = FALSE,
+          df = FALSE,
+          digits = 4,
+          font.size = "small",
+          column.sep.width = "-5pt",
+          omit = c('Constant', 'aic', 'bic', 'll', omit_vars),
+          # omit = c("Constant", controls),
+          no.space = TRUE,
+          # add.lines = list(c("Country and Currency FE", "Y", "Y", "Y", "Y", "Y")),
+          header = FALSE, 
+          type = 'latex'
+)
 
+# LC
 stargazer(m24, m60, m120,
           column.labels = c('2y', '5y', '10y'),
           dep.var.labels.include = FALSE,
@@ -351,8 +379,7 @@ stargazer(m24, m60, m120,
           type = 'latex'
 )
 
-# it shows up in USD. 
-
+# USD. 
 stargazer(m24_usd, m60_usd, m120_usd,
           column.labels = c('2y', '5y', '10y'),
           dep.var.labels.include = FALSE,

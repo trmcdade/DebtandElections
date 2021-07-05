@@ -1,12 +1,11 @@
-
-#%%
 import seaborn as sns
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
 dir = "C:/Users/trmcd/Dropbox/Debt Issues and Elections/Tim_Code/Output_Data/"
-fn = dir + "outstanding_regdata_usd_24m_2021-03-23.csv"
+fn = dir + "outstanding_regdata_usd_24m_2021-04-19.csv"
+# fn = dir + "outstanding_regdata_usd_24m_2021-03-23.csv"
 df = pd.read_csv(fn, index_col=0)
 df = df[(df['Amt.Issued'] > 0)]
 df['Date'] = pd.to_datetime(df['Date'])
@@ -15,22 +14,26 @@ df['Date'] = pd.to_datetime(df['Date'])
 countries = df['Country'].unique()
 [(i, df[df['Country'] == i]['Curr'].unique()) for i in countries]
 
-cmcm_fn = dir + "cmcm_outstanding_regdata_usd_24m_2021-03-23.csv"
+# cmcm_fn = dir + "cmcm_outstanding_regdata_usd_24m_2021-03-23.csv"
+cmcm_fn = dir + "cmcm_outstanding_regdata_usd_24m_2021-04-19.csv"
 df2 = pd.read_csv(cmcm_fn, index_col=0)
 df2 = df2[(df2['Amt.Numerator'] > 0)]
 df2['Date'] = pd.to_datetime(df2['Date'])
 
-cmcm2_fn = dir + "cmcm_outstanding_regdata_usd_120m_2021-03-23.csv"
+# cmcm2_fn = dir + "cmcm_outstanding_regdata_usd_120m_2021-03-23.csv"
+cmcm2_fn = dir + "cmcm_outstanding_regdata_usd_120m_2021-04-19.csv"
 df3 = pd.read_csv(cmcm2_fn, index_col=0)
 df3 = df3[(df3['Amt.Numerator'] > 0)]
 df3['Date'] = pd.to_datetime(df3['Date'])
 
 # cp = sns.color_palette('CMRmap_r')
 cp = sns.color_palette('coolwarm')
-sns.set_palette('coolwarm', n_colors = len(df3[df3['Country'] == 'URUGUAY']['Curr'].unique()))
+# sns.set_palette('coolwarm', n_colors = len(df3[df3['Country'] == 'URUGUAY']['Curr'].unique()))
+sns.set_palette('coolwarm', n_colors = len(df3[df3['Country'] == 'BRAZIL']['Curr'].unique()))
 
 ## By date of issuance.
-gdf = df3[df3['Country'] == 'URUGUAY']
+# gdf = df3[df3['Country'] == 'URUGUAY']
+gdf = df3[df3['Country'] == 'BRAZIL']
 fig = sns.jointplot(data = gdf,
                     x = 'Date', y = 'Amt.Issued',
                     alpha = 0.3,
@@ -47,13 +50,27 @@ plt.savefig(uruguay)
 
 ## By maturity length.
 
-udf = df3[df3['Country'] == 'URUGUAY']
+# udf = df3[df3['Country'] == 'URUGUAY']
+# udf = df3[df3['Country'] == 'BRAZIL']
+
+dir = 'C:/Users/trmcd/Dropbox/Debt Issues and Elections/Tim_Code/Output_Data/'
+fn2 = dir + "Issues/bond_issuances_py.csv"
+df = pd.read_csv(fn2, index_col = 0)
+udf = df[df['Country (Full Name)'] == 'BRAZIL']
+udf.loc[:,'Issue Date'] = udf.loc[:,'Issue Date'].copy().astype('datetime64[ns]')
+udf = udf[(udf['Curr'].isin(['USD', 'BRL', 'EUR', 'JPY']))]
+udf.head()
+
 fig = sns.jointplot(data = udf,
-                    x = 'Date', y = 'Mty',
+                    # x = 'Date', y = 'Mty',
+                    x = 'Issue Date', y = 'Maturity (Yrs)',
                     alpha = 0.3,
                     hue = 'Curr',
-                    xlim = (udf['Date'].min(), udf['Date'].max()),
-                    ylim = (-2, udf['Mty'].max() + 1)
+                    # xlim = (udf['Date'].min(), udf['Date'].max()),
+                    xlim = (udf['Issue Date'].min(), udf['Issue Date'].max()),
+                    # ylim = (-2, udf['Mty'].max() + 1)
+                    # ylim = (-2, udf['Maturity (Yrs)'].max() + 1)
+                    ylim = (-2, 12)
                     )
 plt.subplots_adjust(top=0.9)
 fig.set_axis_labels('Time', 'Maturity (Months)')
@@ -64,7 +81,8 @@ plt.savefig(uruguay)
 
 ## By maturity length.
 
-mdf = df3[df3['Country'] == 'URUGUAY']
+# mdf = df3[df3['Country'] == 'URUGUAY']
+mdf = df3[df3['Country'] == 'BRAZIL']
 fig = sns.jointplot(data = mdf,
                     x = 'Mty', y = 'Amt.Numerator',
                     alpha = 0.2,

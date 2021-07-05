@@ -320,6 +320,15 @@ class Debt_Issues:
 
         print('After merging credit ratings, out has ', len(self.out['Country'].unique()), 'countries. The date range is ', self.out['Year'].min(), 'until ', self.out['Year'].max(), '.')
 
+        # add in crisis data to see if it's a substitute for credit rating.
+        crises = pd.read_csv(self.dir + '/Explanatory Vars/Crises/crises_20210705.csv', index_col = 0)
+        self.out = self.out.merge(crises,
+                                how = 'left',
+                              left_on = ['Country', 'Year', 'Month'],
+                              right_on = ['Country', 'year', 'month'])
+
+        print('After merging crisis data, out has ', len(self.out['Country'].unique()), 'countries. The date range is ', self.out['Year'].min(), 'until ', self.out['Year'].max(), '.')
+
         print('out head')
         print(self.out.head())
         print('out cols')
@@ -368,6 +377,7 @@ class Debt_Issues:
                         ,'exec_only_round', 'exec_first_round', 'exec_final_round', 'exec_vote_share'
                         ,'inv_grade'
                         ,'cr'
+                        ,'crisis_sovdebt', 'crisis_currency', 'crisis_inflation'
                         ,'US_FFR'
                        ]
 
